@@ -14,62 +14,64 @@ jobs:
       - name: 1. Checkout del codice
         uses: actions/checkout@v3
 
-      - name: 2. Setup Node.js (per Newman)
+      - name: 2. Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '16'
 
       - name: 3. Installazione Newman
         run: npm install -g newman
+
+      # NOTA: Ho aggiunto le virgolette "..." ai nomi per evitare errori di sintassi YAML
       
-      - name: [Calc] Build Test Image
+      - name: "[Calc] Build Test Image"
         run: docker build -t calc-test -f src/calc/Dockerfile_test src/calc
 
-      - name: [Calc] Run Container
+      - name: "[Calc] Run Container"
         run: docker run -d -p 5000:5000 --name calc-container calc-test
 
-      - name: [Calc] Wait for start
+      - name: "[Calc] Wait for start"
         run: sleep 5
 
-      - name: [Calc] Run Unit Tests
+      - name: "[Calc] Run Unit Tests"
         run: newman run tests/calc_ut.postman_collection.json || (docker logs calc-container && exit 1)
 
-      - name: [Calc] Stop Container
+      - name: "[Calc] Stop Container"
         if: always() 
         run: docker rm -f calc-container
 
-      - name: [String] Build Test Image
+      - name: "[String] Build Test Image"
         run: docker build -t string-test -f src/string/Dockerfile_test src/string
 
-      - name: [String] Run Container
+      - name: "[String] Run Container"
         run: docker run -d -p 5000:5000 --name string-container string-test
 
-      - name: [String] Wait for start
+      - name: "[String] Wait for start"
         run: sleep 5
 
-      - name: [String] Run Unit Tests
+      - name: "[String] Run Unit Tests"
         run: newman run tests/string_ut.postman_collection.json || (docker logs string-container && exit 1)
 
-      - name: [String] Stop Container
+      - name: "[String] Stop Container"
         if: always()
         run: docker rm -f string-container
 
-      - name: [Integration] Build Architecture
+      - name: "[Integration] Build Architecture"
         run: docker-compose -f src/docker-compose.yml build
 
-      - name: [Integration] Start Architecture
+      - name: "[Integration] Start Architecture"
         run: docker-compose -f src/docker-compose.yml up -d
 
-      - name: [Integration] Wait for Services (DB needs time)
+      - name: "[Integration] Wait for Services"
         run: sleep 15
 
-      - name: [Integration] Run Integration Tests
+      - name: "[Integration] Run Integration Tests"
         run: newman run tests/integration.postman_collection.json
 
-      - name: [Integration] Dump Logs on Failure
+      - name: "[Integration] Dump Logs on Failure"
         if: failure()
         run: docker-compose -f src/docker-compose.yml logs
 
-      - name: [Integration] Teardown
+      - name: "[Integration] Teardown"
         if: always()
         run: docker-compose -f src/docker-compose.yml down
