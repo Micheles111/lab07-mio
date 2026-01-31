@@ -1,0 +1,91 @@
+name: DevOps Lab 7 - Standard Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  pipeline:
+    name: Build & Test Sequence
+    runs-on: ubuntu-latest
+    steps:
+      # ==========================================
+      # 1. SETUP DELL'AMBIENTE
+      # ==========================================
+      - name: 1. Checkout del codice
+        uses: actions/checkout@v3
+
+      - name: 2. Setup Node.js (per Newman)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: 3. Installazione Newman
+        run: npm install -g newman
+
+      # ==========================================
+      # 2. TEST ISOLATI: CALC
+      # ==========================================
+      - name: [Calc] Build Test Image
+        # Usa il Dockerfile_test che contiene il Mock
+        run: docker build -t calc-test -f src/calc/Dockerfile_test src/calc
+
+      - name: [Calc] Run Container
+        run: docker run -d -p 5000:5000 --name calc-container calc-test
+
+      - name: [Calc] Wait for start
+        run: sleep 5
+
+      - name: [Calc] Run Unit Tests
+        # Se fallisce, stampa i log per capire perché
+        run: newman run tests/calc_ut.postman_collection.json || (docker logs calc-container && exit 1)
+
+      - name: [Calc] Stop Container
+        if: always() # Esegue sempre questo step, anche se i test falliscono
+        run: docker rm -f calc-container
+
+      # ==========================================
+      # 3. TEST ISOLATI: STRING
+      # ==========================================
+      - name: [String] Build Test Image
+        run: docker build -t string-test -f src/string/Dockerfile_test src/string
+
+      - name: [String] Run Container
+        # Riutilizza la porta 5000 (liberata da calc)
+        run: docker run -d -p 5000:5000 --name string-container string-test
+
+      - name: [String] Wait for start
+        run: sleep 5
+
+      - name: [String] Run Unit Tests
+        run: newman run tests/string_ut.postman_collection.json || (docker logs string-container && exit 1)
+
+      - name: [String] Stop Container
+        if: always()
+        run: docker rm -f string-container
+
+      # ==========================================
+      # 4. TEST DI INTEGRAZIONE (FULL ARCHITECTURE)
+      # ==========================================
+      - name: [Integration] Build Architecture
+        # Punta al docker-compose nella cartella src
+        run: docker-compose -f src/docker-compose.yml build
+
+      - name: [Integration] Start Architecture
+        run: docker-compose -f src/docker-compose.yml up -d
+
+      - name: [Integration] Wait for Services (DB needs time)
+        run: sleep 15
+
+      - name: [Integration] Run Integration Tests
+        run: newman run tests/integration.postman_collection.json
+
+      - name: [Integration] Dump Logs on Failure
+        if: failure()
+        run: docker-compose -f src/docker-compose.yml logs
+
+      - name: [Integration] Teardown
+        if: always()
+        run: docker-compose -f src/docker-compose.yml down
