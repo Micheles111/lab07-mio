@@ -57,10 +57,10 @@ jobs:
         run: docker rm -f string-container
 
       - name: "[Integration] Build Architecture"
-        run: docker-compose -f src/docker-compose.yml build
+        run: docker compose -f src/docker-compose.yml build
 
       - name: "[Integration] Start Architecture"
-        run: docker-compose -f src/docker-compose.yml up -d
+        run: docker compose -f src/docker-compose.yml up -d
 
       - name: "[Integration] Wait for Services"
         run: sleep 15
@@ -70,8 +70,8 @@ jobs:
 
       - name: "[Integration] Dump Logs on Failure"
         if: failure()
-        run: docker-compose -f src/docker-compose.yml logs
+        run: docker compose -f src/docker-compose.yml logs
 
       - name: "[Integration] Teardown"
         if: always()
-        run: docker-compose -f src/docker-compose.yml down
+        run: docker compose -f src/docker-compose.yml down
