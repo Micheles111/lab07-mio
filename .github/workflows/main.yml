@@ -28,8 +28,9 @@ jobs:
       # ==========================================
       # 2. TEST ISOLATI: CALC
       # ==========================================
+      
+      # Usa il Dockerfile_test che contiene il Mock
       - name: [Calc] Build Test Image
-        # Usa il Dockerfile_test che contiene il Mock
         run: docker build -t calc-test -f src/calc/Dockerfile_test src/calc
 
       - name: [Calc] Run Container
@@ -38,12 +39,12 @@ jobs:
       - name: [Calc] Wait for start
         run: sleep 5
 
+      # Se fallisce, stampa i log per capire perché
       - name: [Calc] Run Unit Tests
-        # Se fallisce, stampa i log per capire perché
         run: newman run tests/calc_ut.postman_collection.json || (docker logs calc-container && exit 1)
 
       - name: [Calc] Stop Container
-        if: always() # Esegue sempre questo step, anche se i test falliscono
+        if: always() 
         run: docker rm -f calc-container
 
       # ==========================================
@@ -52,8 +53,8 @@ jobs:
       - name: [String] Build Test Image
         run: docker build -t string-test -f src/string/Dockerfile_test src/string
 
+      # Riutilizza la porta 5000 (liberata da calc)
       - name: [String] Run Container
-        # Riutilizza la porta 5000 (liberata da calc)
         run: docker run -d -p 5000:5000 --name string-container string-test
 
       - name: [String] Wait for start
@@ -69,8 +70,9 @@ jobs:
       # ==========================================
       # 4. TEST DI INTEGRAZIONE (FULL ARCHITECTURE)
       # ==========================================
+      
+      # Punta al docker-compose nella cartella src
       - name: [Integration] Build Architecture
-        # Punta al docker-compose nella cartella src
         run: docker-compose -f src/docker-compose.yml build
 
       - name: [Integration] Start Architecture
