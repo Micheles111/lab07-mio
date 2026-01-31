@@ -22,7 +22,9 @@ jobs:
       - name: 3. Installazione Newman
         run: npm install -g newman
 
-      # NOTA: Ho aggiunto le virgolette "..." ai nomi per evitare errori di sintassi YAML
+      # ==========================================
+      # 2. TEST ISOLATI: CALC
+      # ==========================================
       
       - name: "[Calc] Build Test Image"
         run: docker build -t calc-test -f src/calc/Dockerfile_test src/calc
@@ -34,12 +36,16 @@ jobs:
         run: sleep 5
 
       - name: "[Calc] Run Unit Tests"
+        # Usa || exit 1 per far fallire lo step se newman fallisce, ma permettere l'esecuzione dello step successivo (stop container)
         run: newman run tests/calc_ut.postman_collection.json || (docker logs calc-container && exit 1)
 
       - name: "[Calc] Stop Container"
         if: always() 
         run: docker rm -f calc-container
 
+      # ==========================================
+      # 3. TEST ISOLATI: STRING
+      # ==========================================
       - name: "[String] Build Test Image"
         run: docker build -t string-test -f src/string/Dockerfile_test src/string
 
@@ -56,6 +62,12 @@ jobs:
         if: always()
         run: docker rm -f string-container
 
+      # ==========================================
+      # 4. TEST DI INTEGRAZIONE (FULL ARCHITECTURE)
+      # ==========================================
+      
+      # NOTA: Qui ho cambiato 'docker-compose' in 'docker compose' (senza trattino)
+      
       - name: "[Integration] Build Architecture"
         run: docker compose -f src/docker-compose.yml build
 
