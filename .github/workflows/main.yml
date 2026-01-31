@@ -11,9 +11,6 @@ jobs:
     name: Build & Test Sequence
     runs-on: ubuntu-latest
     steps:
-      # ==========================================
-      # 1. SETUP DELL'AMBIENTE
-      # ==========================================
       - name: 1. Checkout del codice
         uses: actions/checkout@v3
 
@@ -24,12 +21,7 @@ jobs:
 
       - name: 3. Installazione Newman
         run: npm install -g newman
-
-      # ==========================================
-      # 2. TEST ISOLATI: CALC
-      # ==========================================
       
-      # Usa il Dockerfile_test che contiene il Mock
       - name: [Calc] Build Test Image
         run: docker build -t calc-test -f src/calc/Dockerfile_test src/calc
 
@@ -39,7 +31,6 @@ jobs:
       - name: [Calc] Wait for start
         run: sleep 5
 
-      # Se fallisce, stampa i log per capire perché
       - name: [Calc] Run Unit Tests
         run: newman run tests/calc_ut.postman_collection.json || (docker logs calc-container && exit 1)
 
@@ -47,13 +38,9 @@ jobs:
         if: always() 
         run: docker rm -f calc-container
 
-      # ==========================================
-      # 3. TEST ISOLATI: STRING
-      # ==========================================
       - name: [String] Build Test Image
         run: docker build -t string-test -f src/string/Dockerfile_test src/string
 
-      # Riutilizza la porta 5000 (liberata da calc)
       - name: [String] Run Container
         run: docker run -d -p 5000:5000 --name string-container string-test
 
@@ -67,11 +54,6 @@ jobs:
         if: always()
         run: docker rm -f string-container
 
-      # ==========================================
-      # 4. TEST DI INTEGRAZIONE (FULL ARCHITECTURE)
-      # ==========================================
-      
-      # Punta al docker-compose nella cartella src
       - name: [Integration] Build Architecture
         run: docker-compose -f src/docker-compose.yml build
 
